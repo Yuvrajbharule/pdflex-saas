@@ -1,8 +1,8 @@
 package com.pdflex.service;
 
-
 import com.pdflex.constant.AppConstants;
 import com.pdflex.util.GhostscriptUtil;
+import com.pdflex.utl.FileUtil;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import java.io.File;
 public class PdfServiceImpl implements PdfService {
 
     @Autowired
-    private com.pdflex.utl.FileUtil fileUtil;
+    private FileUtil fileUtil;
 
     @Autowired
     private GhostscriptUtil ghostscriptUtil;
@@ -22,13 +22,15 @@ public class PdfServiceImpl implements PdfService {
     @Override
     public String compress(MultipartFile file) throws Exception {
 
-        System.out.println("Hit compress method in service layer");
+        System.out.println("Hit compress method");
+
         File savedFile = fileUtil.saveFile(file);
 
         String outputFile = ghostscriptUtil.compress(savedFile);
 
-        // delete input file after processing
+        // cleanup input
         savedFile.delete();
+
         System.out.println("Compression done");
         return outputFile;
     }
@@ -36,17 +38,14 @@ public class PdfServiceImpl implements PdfService {
     @Override
     public String merge(MultipartFile[] files) throws Exception {
 
-        System.out.println("merge service hit");
-
         if (files == null || files.length < 2) {
             throw new RuntimeException("Minimum 2 files required");
         }
 
-        String outputFileName = "merged_" + System.currentTimeMillis() + ".pdf";
-
         File outputDir = new File(AppConstants.OUTPUT_DIR);
         if (!outputDir.exists()) outputDir.mkdirs();
 
+        String outputFileName = "merged_" + System.currentTimeMillis() + ".pdf";
         String outputPath = outputDir.getAbsolutePath() + "/" + outputFileName;
 
         PDFMergerUtility merger = new PDFMergerUtility();
@@ -64,7 +63,6 @@ public class PdfServiceImpl implements PdfService {
         merger.setDestinationFileName(outputPath);
         merger.mergeDocuments(null);
 
-        System.out.println("merge service return ");
         return outputFileName;
     }
 }

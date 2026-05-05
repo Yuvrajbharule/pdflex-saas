@@ -18,15 +18,12 @@ public class FileUtil {
         File dir = new File(AppConstants.INPUT_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
+            System.out.println("Created input dir: " + dir.getAbsolutePath());
         }
 
         File savedFile = new File(dir, fileName);
 
         System.out.println("Saving file to: " + savedFile.getAbsolutePath());
-
-        if (savedFile.exists()) {
-            savedFile.delete();
-        }
 
         file.transferTo(savedFile);
 

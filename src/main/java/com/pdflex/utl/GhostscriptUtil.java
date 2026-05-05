@@ -1,7 +1,6 @@
 package com.pdflex.util;
 
 import com.pdflex.constant.AppConstants;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -9,17 +8,26 @@ import java.io.*;
 @Component
 public class GhostscriptUtil {
 
-    @Value("${ghostscript.path}")
-    private String gsPath;
-
     public String compress(File inputFile) throws Exception {
+
+        // 🔥 OS-based GS path
+        String gsPath = System.getProperty("os.name").toLowerCase().contains("win")
+                ? "C:/Program Files/gs/gs10.07.0/bin/gswin64c.exe"
+                : "/usr/bin/gs";
 
         String outputFileName = "compressed_" + System.currentTimeMillis() + ".pdf";
 
         File outputDir = new File(AppConstants.OUTPUT_DIR);
-        if (!outputDir.exists()) outputDir.mkdirs();
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+            System.out.println("Created output dir: " + outputDir.getAbsolutePath());
+        }
 
         String outputPath = outputDir.getAbsolutePath() + "/" + outputFileName;
+
+        System.out.println("GS Path: " + gsPath);
+        System.out.println("Input: " + inputFile.getAbsolutePath());
+        System.out.println("Output: " + outputPath);
 
         ProcessBuilder pb = new ProcessBuilder(
                 gsPath,
@@ -37,7 +45,6 @@ public class GhostscriptUtil {
 
         Process process = pb.start();
 
-        // 🔥 Logs read karo (debugging ke liye)
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream())
         );
