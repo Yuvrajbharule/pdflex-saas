@@ -1,16 +1,20 @@
 package com.pdflex.controller;
 
+import com.pdflex.constant.AppConstants;
 import com.pdflex.model.dto.FileResponseDTO;
 import com.pdflex.service.PdfService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,20 +56,29 @@ public class PdfController {
     @GetMapping("/download/{fileName}")
     public ResponseEntity<Resource> download(@PathVariable String fileName) throws Exception {
 
-        System.out.println("download api hit ");
-        File file = new File("F:/PDFlex/output/" + fileName);
+        File file = new File(AppConstants.OUTPUT_DIR + "/" + fileName);
 
         if (!file.exists()) {
             throw new RuntimeException("File not found");
         }
 
-        Resource resource = new UrlResource(file.toURI());
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
 
+        // 🔥 Auto delete after response
+        new Thread(() -> {
+            try {
+                Thread.sleep(5000);
+                file.delete();
+                System.out.println("Deleted file: " + file.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
 
-        System.out.println("download api return ");
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=" + file.getName())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getName())
+                .contentLength(file.length())
+                .contentType(MediaType.APPLICATION_PDF)
                 .body(resource);
     }
 

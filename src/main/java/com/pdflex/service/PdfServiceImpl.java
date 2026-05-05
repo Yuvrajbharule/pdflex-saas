@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class PdfServiceImpl implements PdfService {
@@ -26,13 +28,16 @@ public class PdfServiceImpl implements PdfService {
 
         File savedFile = fileUtil.saveFile(file);
 
-        String outputFile = ghostscriptUtil.compress(savedFile);
+        try {
+            String outputFile = ghostscriptUtil.compress(savedFile);
 
-        // cleanup input
-        savedFile.delete();
+            System.out.println("Compression done");
+            return outputFile;
 
-        System.out.println("Compression done");
-        return outputFile;
+        } finally {
+            // ✅ Always delete input file
+            savedFile.delete();
+        }
     }
 
     @Override
@@ -50,19 +55,31 @@ public class PdfServiceImpl implements PdfService {
 
         PDFMergerUtility merger = new PDFMergerUtility();
 
-        for (MultipartFile file : files) {
+        List<File> tempFiles = new ArrayList<>();
 
-            if (!file.getContentType().contains("pdf")) {
-                throw new RuntimeException("Only PDF files allowed");
+        try {
+
+            for (MultipartFile file : files) {
+
+                if (!file.getContentType().contains("pdf")) {
+                    throw new RuntimeException("Only PDF files allowed");
+                }
+
+                File tempFile = fileUtil.saveFile(file);
+                tempFiles.add(tempFile);
+                merger.addSource(tempFile);
             }
 
-            File tempFile = fileUtil.saveFile(file);
-            merger.addSource(tempFile);
+            merger.setDestinationFileName(outputPath);
+            merger.mergeDocuments(null);
+
+            return outputFileName;
+
+        } finally {
+            // ✅ Cleanup all temp files
+            for (File f : tempFiles) {
+                f.delete();
+            }
         }
-
-        merger.setDestinationFileName(outputPath);
-        merger.mergeDocuments(null);
-
-        return outputFileName;
     }
 }
